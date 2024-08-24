@@ -3,9 +3,13 @@ import {
     type ConversationFlavor,
 
   } from "@grammyjs/conversations";
-  import { Context } from "grammy";
+  import { Context, SessionFlavor } from "grammy";
 
- export type MyContext = Context & ConversationFlavor
+export interface sessionData {
+  moonCount: number;
+}
+
+ export type MyContext = Context & ConversationFlavor & SessionFlavor<sessionData>
 export  type MyConversation = Conversation<MyContext>
 
 
