@@ -1,0 +1,24 @@
+{
+  "name": "expense-bot",
+  "version": "1.0.0",
+  "description": "fot tracking expenses",
+  "main": "bot.js",
+  "scripts": {
+    "start": "nodemon bot.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@grammyjs/conversations": "^1.2.0",
+    "dotenv": "^16.4.5",
+    "grammy": "^1.29.0",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.21",
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}
