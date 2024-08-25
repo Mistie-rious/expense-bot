@@ -2,8 +2,8 @@
 import { Bot, session } from 'grammy';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import dotenv from 'dotenv'
-import { initial } from './context/session';
-import { MyContext, greeting } from './context/context';
+
+import { MyContext,  mainConversation  } from './context/context';
 dotenv.config()
 
 
@@ -28,19 +28,19 @@ async function startup(){
 
 
 
-bot.use(session({ initial: () => ({ moonCount: 0 }) }));
+bot.use(session({ initial: () => ({ moonCount: 0, expenses: [] as number[] }) }));
 
 bot.use(conversations());
-bot.use(createConversation(greeting))
+bot.use(createConversation(mainConversation))
 
 bot.command("start", async (ctx) => {
-await ctx.conversation.enter("greeting");
+await ctx.conversation.enter("mainConversation");
 })
 
 
 
-bot.command("stop", (ctx) => {
-  ctx.reply("Bot is stopping...");
+bot.command("stop", async (ctx) => {
+  await ctx.reply("Bot is stopping...", { reply_markup: { remove_keyboard: true } });
   bot.stop();
 });
 
@@ -56,6 +56,12 @@ bot.hears(/.*🌝*./, async (ctx) => {
  await  ctx.reply(`Moons are cool! ${emoji}`);
 })
 
-bot.on("message", (ctx) => ctx.reply("I have no casual response to this situation. Lots of love! 🌝"));
+bot.on("message", (ctx, next) => {
+  if (!ctx.conversation.active) {
+    return ctx.reply("I have no casual response to this situation. Lots of love! 🌝");
+  }
+
+  return next();
+});
 
 bot.start();
