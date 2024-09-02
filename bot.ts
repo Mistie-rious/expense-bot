@@ -2,8 +2,8 @@
 import { Bot, session } from 'grammy';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import dotenv from 'dotenv'
-
-import { MyContext,  mainConversation  } from './context/context';
+import { mainConversation } from './src/conversations/mainConversation';
+import { MyContext } from './src/context/context';
 dotenv.config()
 
 
@@ -55,6 +55,38 @@ bot.hears(/.*🌝*./, async (ctx) => {
   ctx.session.moonCount++;
  await  ctx.reply(`Moons are cool! ${emoji}`);
 })
+
+bot.callbackQuery(/^delete_expense_(\d+)$/, async (ctx) => {
+  console.log(ctx.match);
+  const expenseIndex = parseInt(ctx.match[1], 10);
+  console.log(expenseIndex);
+
+  
+  if (!isNaN(expenseIndex)) {
+    console.log('Expense index is a number:', expenseIndex);
+    if (expenseIndex >= 0) {
+      console.log('Expense index is non-negative:', expenseIndex);
+      console.log(ctx.session.expenses)
+      if (expenseIndex < ctx.session.expenses.length) {
+        console.log('Expense index is within bounds:', expenseIndex);
+        const deletedExpense = ctx.session.expenses.splice(expenseIndex, 1)[0];
+        const total = ctx.session.expenses.reduce((a, b) => a + b, 0);
+        await ctx.answerCallbackQuery(`Expense of ${deletedExpense} deleted.`);
+        await ctx.editMessageText(`Expense of ${deletedExpense} deleted. Your total expenses are now ${total}.`);
+      } else {
+        console.log('Expense index is out of bounds:', expenseIndex);
+        await ctx.answerCallbackQuery("Invalid input. Please try again.");
+      }
+    } else {
+      console.log('Expense index is negative:', expenseIndex);
+      await ctx.answerCallbackQuery("bello.");
+    }
+  } else {
+    console.log('Expense index is not a number:', expenseIndex);
+    await ctx.answerCallbackQuery("Invalid input. Please try again.");
+  }
+});
+
 
 bot.on("message", (ctx, next) => {
   if (!ctx.conversation.active) {
