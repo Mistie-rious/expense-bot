@@ -2,10 +2,14 @@
 import { Bot, session } from 'grammy';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import dotenv from 'dotenv'
-import { mainConversation } from './src/conversations/mainConversation';
+import { prisma } from './src/client';
+import expenseController from './src/controllers/expenseController';
+import { greeting} from './src/conversations/mainConversation';
 import { MyContext } from './src/context/context';
+import { InlineKeyboard } from 'grammy';
 dotenv.config()
 
+const confirm = new InlineKeyboard().text('Yes', 'yes').text('No', 'no');
 
 
 
@@ -28,21 +32,74 @@ async function startup(){
 
 
 
-bot.use(session({ initial: () => ({ moonCount: 0, expenses: [] as number[] }) }));
 
+bot.use(session({ initial: () => ({ moonCount: 0, expenses: [] as { amount: number; category: string; description: string; date: Date }[] }) }));
 bot.use(conversations());
-bot.use(createConversation(mainConversation))
 
-bot.command("start", async (ctx) => {
-await ctx.conversation.enter("mainConversation");
-})
+bot.use(createConversation(greeting))
+bot.use(createConversation(expenseController.addExpenses));
+bot.use(createConversation(expenseController.viewExpenses));
+bot.use(createConversation(expenseController.deleteExpenses));
+bot.use(createConversation(expenseController.editExpenses));
+
+bot.command('start', async (ctx) => {
+  const telegramId = ctx.from?.id.toString(); 
 
 
+  let user = await prisma.user.findFirst({
+    where: { id: telegramId }
+  });
 
-bot.command("stop", async (ctx) => {
-  await ctx.reply("Bot is stopping...", { reply_markup: { remove_keyboard: true } });
-  bot.stop();
+  if (user) {
+    await ctx.reply("You are already registered. Use /reset if you want to reset your data.");
+  } else {
+    
+    user = await prisma.user.create({
+      data: {
+        id: telegramId,  
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+
+    await ctx.reply("Welcome! You are now registered.");
+  }
 });
+
+
+
+bot.command('reset', async (ctx) => {
+  const telegramId = ctx.from?.id.toString();
+
+  
+  const user = await prisma.user.findUnique({
+    where: { id: telegramId }
+  });
+
+  await ctx.reply("Are you sure you want to reset your account? This action cannot be undone.", {
+    reply_markup: confirm
+
+  });
+
+  
+});
+
+bot.callbackQuery('yes', async (ctx) => {
+  const telegramId = ctx.from?.id.toString();
+
+  await prisma.user.delete({
+    where: { id: telegramId }
+  });
+
+  ctx.session.userId = undefined;
+  await ctx.answerCallbackQuery({ text: "Your account has been reset." });
+
+  })
+
+  bot.callbackQuery('no', async (ctx) => {
+    await ctx.answerCallbackQuery({ text: "Your account has not been reset." });
+  })
+
 
 bot.command("moon", async (ctx) => {
   const count = ctx.session.moonCount;
@@ -56,44 +113,22 @@ bot.hears(/.*🌝*./, async (ctx) => {
  await  ctx.reply(`Moons are cool! ${emoji}`);
 })
 
-bot.callbackQuery(/^delete_expense_(\d+)$/, async (ctx) => {
-  console.log(ctx.match);
-  const expenseIndex = parseInt(ctx.match[1], 10);
-  console.log(expenseIndex);
+bot.hears("Add Expenses", async (ctx) => {
+  await ctx.conversation.enter("addExpenses");
+});
 
-  
-  if (!isNaN(expenseIndex)) {
-    console.log('Expense index is a number:', expenseIndex);
-    if (expenseIndex >= 0) {
-      console.log('Expense index is non-negative:', expenseIndex);
-      console.log(ctx.session.expenses)
-      if (expenseIndex < ctx.session.expenses.length) {
-        console.log('Expense index is within bounds:', expenseIndex);
-        const deletedExpense = ctx.session.expenses.splice(expenseIndex, 1)[0];
-        const total = ctx.session.expenses.reduce((a, b) => a + b, 0);
-        await ctx.answerCallbackQuery(`Expense of ${deletedExpense} deleted.`);
-        await ctx.editMessageText(`Expense of ${deletedExpense} deleted. Your total expenses are now ${total}.`);
-      } else {
-        console.log('Expense index is out of bounds:', expenseIndex);
-        await ctx.answerCallbackQuery("Invalid input. Please try again.");
-      }
-    } else {
-      console.log('Expense index is negative:', expenseIndex);
-      await ctx.answerCallbackQuery("bello.");
-    }
-  } else {
-    console.log('Expense index is not a number:', expenseIndex);
-    await ctx.answerCallbackQuery("Invalid input. Please try again.");
-  }
+bot.hears("View Expenses", async (ctx) => {
+  await ctx.conversation.enter("viewExpenses");
+});
+
+bot.hears("Delete Expenses", async (ctx) => {
+  await ctx.conversation.enter("deleteExpenses");
+});
+
+bot.hears("Edit Expenses", async (ctx) => {
+  await ctx.conversation.enter("editExpenses");
 });
 
 
-bot.on("message", (ctx, next) => {
-  if (!ctx.conversation.active) {
-    return ctx.reply("I have no casual response to this situation. Lots of love! 🌝");
-  }
-
-  return next();
-});
 
 bot.start();
