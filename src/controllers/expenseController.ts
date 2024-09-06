@@ -11,10 +11,13 @@ export interface User {
 
 async function addExpenses(conversation: MyConversation, ctx: MyContext) {
   console.log('addExpenses function called');
-
+ 
+ 
   const user = await prisma.user.findFirst({
-    where: { id: ctx.session.userId }, 
+    where: { id: ctx.from?.id.toString() }, 
   });
+
+
 
   if (!user) {
     await ctx.reply("User not found.");
@@ -39,6 +42,7 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
     category = await prisma.category.create({
       data: {
         name: "Uncategorized",
+        userId: user.id,
       },
     });
   }
@@ -53,6 +57,7 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
         },
       });
       await ctx.reply(`Expense of ${amount} recorded.`);
+      console.log(user.id)
       console.log(`Expense ${amount} recorded`);
 
     } catch (e) {
@@ -67,7 +72,7 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
 async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
 
   const user = await prisma.user.findFirst({
-    where: { id: ctx.session.userId }, 
+    where: { id:  ctx.from?.id.toString() }, 
   });
 
   if (!user) {
@@ -92,7 +97,7 @@ async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
 async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
 
   const user = await prisma.user.findFirst({
-    where: { id: ctx.session.userId }, 
+    where: { id:  ctx.from?.id.toString() }, 
   });
 
   if (!user) {
@@ -119,10 +124,86 @@ async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
       inline_keyboard: expensesKeyboard,
     },
   });
+
+
+
+
+
+}
+async function editExpenses(conversation: MyConversation, ctx: MyContext) {
+  const user = await prisma.user.findFirst({
+    where: { id: ctx.from?.id.toString() },
+  });
+  if (!user) {
+    await ctx.reply("User not found.");
+    return;
+  }
+  const expenses = await prisma.expense.findMany({
+    where: { userId: user.id },
+    select: { id: true, amount: true },
+  });
+  if (expenses.length === 0) {
+    await ctx.reply("You haven't recorded any expenses yet.");
+    return;
+  }
+  const expensesKeyboard = expenses.map((expense, index) => [
+    { text: `Expense ${index + 1}: ${expense.amount}`, callback_data: `edit_expense_${expense.id}` },
+  ]);
+  await ctx.reply("Edit which expense?", {
+    reply_markup: {
+      inline_keyboard: expensesKeyboard,
+    },
+  });
+
+
+  const result = await conversation.waitFor("callback_query:data");
+  if (!result) {
+    await ctx.reply("No expense selected. Operation cancelled.");
+    return;
+  }
+
+  const callbackData = result.update.callback_query.data
+  const expenseId = callbackData.split("_")[2];
+
+
+  const expenseToEdit = await prisma.expense.findUnique({
+    where: { id: expenseId },
+  });
+
+  if (!expenseToEdit) {
+    await ctx.reply("Expense not found. Operation cancelled.");
+    return;
+  }
+
+
+  await ctx.reply(`Current amount: ${expenseToEdit.amount}. Please enter the new amount:`);
+
+
+  const response = await conversation.wait();
+  if (!response.message?.text) {
+    await ctx.reply("Invalid response. Operation cancelled.");
+    return;
+  }
+  
+  const newAmount = parseFloat(response.message.text);
+  if (isNaN(newAmount)) {
+    await ctx.reply("Invalid amount. Please try again with a valid number.");
+    return;
+  }
+
+
+  try {
+    await prisma.expense.update({
+      where: { id: expenseId },
+      data: { amount: newAmount },
+    });
+
+    await ctx.reply(`New amount is ${newAmount}.`);
+  } catch (error) {
+    console.error("Error updating expense:", error);
+    await ctx.reply("An error occurred while updating the expense. Please try again later.");
+  }
 }
 
-async function editExpenses(conversation: MyConversation, ctx: MyContext) {
-  await ctx.reply("This function is not available. You can add new expenses or delete all expenses.");
-}
 
 export default { addExpenses, viewExpenses, deleteExpenses, editExpenses };

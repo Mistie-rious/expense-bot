@@ -19,6 +19,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   expenses  Expense[]
+  categories Category[]
 }
 
 model Expense {
@@ -37,6 +38,8 @@ model Category {
   id        String   @id @default(cuid())
   name      String
   expenses  Expense[]
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
