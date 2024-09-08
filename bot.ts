@@ -9,7 +9,7 @@ import { greeting} from './src/conversations/mainConversation';
 import { MyContext } from './src/context/context';
 import { InlineKeyboard } from 'grammy';
 import { Keyboard } from 'grammy';
-import { categoryKeyboard ,expensesKeyboard } from './src/ui/customKeyboard';
+import { categoryKeyboard ,expensesKeyboard, startKeyboard } from './src/ui/customKeyboard';
 dotenv.config()
 import { userKeyboards, setCurrentKeyboard, getPreviousKeyboard } from './src/ui/customKeyboard';
 
@@ -73,7 +73,7 @@ bot.command('reset', async (ctx) => {
     where: { id: telegramId }
   });
 
-  await ctx.reply("Are you sure you want to reset your account? This action cannot be undone.", {
+  await ctx.reply("Are you sure you want to reset your account? 🐷 ", {
     reply_markup: confirm
 
   });
@@ -84,18 +84,68 @@ bot.command('reset', async (ctx) => {
 bot.callbackQuery('yes', async (ctx) => {
   const telegramId = ctx.from?.id.toString();
 
+  try{
+  const user = await prisma.user.findUnique({
+    where: {id:telegramId},
+    include: { expenses: true, categories: true }
+  })
+
+  if (!user){
+    await ctx.answerCallbackQuery();
+    await ctx.reply('No user found.')
+  }
+
+  await prisma.expense.deleteMany({
+where: { userId: telegramId }
+  })
+
+  await prisma.category.deleteMany({
+    where: { userId: telegramId }
+  });
+
   await prisma.user.delete({
     where: { id: telegramId }
   });
 
+  
+
   ctx.session.userId = undefined;
-  await ctx.answerCallbackQuery({ text: "Your account has been reset." });
+  await ctx.answerCallbackQuery();
+  await ctx.reply("Your account has been reset.", ), {
+    reply_markup: startKeyboard
+  };
+}catch(e){
+  console.error('Error deleting user:', e);
+  await ctx.answerCallbackQuery();
+  await ctx.reply("An error occurred while resetting your account. Please try again later.");
+}
 
   })
 
   bot.callbackQuery('no', async (ctx) => {
-    await ctx.answerCallbackQuery({ text: "Your account has not been reset." });
-  })
+const telegramId = ctx.from?.id.toString();
+    try{
+      const user = await prisma.user.findUnique({
+        where: {id:telegramId},
+        include: { expenses: true, categories: true }
+      })
+    
+      if (!user){
+        await ctx.answerCallbackQuery();
+        await ctx.reply('No user found.')
+      }
+
+      
+    await ctx.answerCallbackQuery();
+    await ctx.reply("Your account has not been reset.", ), {
+      reply_markup: startKeyboard
+ 
+    
+  }
+}catch(e){
+console.error('Error deleting user:', e);
+}})
+ 
 
  
   bot.callbackQuery(/^delete_expense_/, async (ctx) => {
@@ -103,10 +153,12 @@ bot.callbackQuery('yes', async (ctx) => {
     const expenseId = callbackData.split("_")[2];
   
     try {
+      
       await prisma.expense.delete({
         where: { id: expenseId },
       });
   
+
       await ctx.answerCallbackQuery("Expense deleted successfully.");
       await ctx.editMessageText("Expense has been deleted.");
     } catch (error) {
@@ -120,7 +172,20 @@ bot.callbackQuery('yes', async (ctx) => {
 
   })
 
-
+  bot.catch((err) => {
+    const ctx = err.ctx;
+    console.error(`Error while handling update ${ctx.update.update_id}:`);
+    const e = err.error;
+    if (e instanceof Error) {
+      console.error("Error name: ", e.name);
+      console.error("Error message: ", e.message);
+      console.error("Error stack: ", e.stack);
+    } else {
+      console.error("Unknown error object: ", e);
+    }
+    ctx.reply("An unexpected error occurred. Please try again later.")
+      .catch(replyErr => console.error('Error while sending error message:', replyErr));
+  });
 
 bot.command("moon", async (ctx) => {
   const count = ctx.session.moonCount;

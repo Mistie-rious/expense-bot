@@ -21,14 +21,14 @@ try{
 
   if (user) {
     setCurrentKeyboard(telegramId!, startKeyboard);
-    await ctx.reply("You are already registered. Use /reset if you want to reset your data.", {
+    await ctx.reply(`You are already registered. Use /reset if you want to reset your data.`, {
       reply_markup: startKeyboard
     });
 
     console.log(user.id)
   } else {
 
-    await ctx.reply("Welcome! What's your name?");
+    await ctx.reply("Welcome!🌸 What's your name?");
 
     const { message } = await conversation.waitFor("message:text");
     const userName = message.text;
@@ -54,7 +54,7 @@ try{
   
     
     setCurrentKeyboard(telegramId!, startKeyboard);
-    await ctx.reply("Welcome! You are now registered.", {
+    await ctx.reply(`Welcome to PiggyPal, ${user.name} 🐷.`, {
       reply_markup: startKeyboard
     }); 
     }

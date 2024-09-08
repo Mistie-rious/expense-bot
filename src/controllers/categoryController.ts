@@ -5,7 +5,7 @@ import { InlineKeyboard } from "grammy";
 
 const addCategory = async (conversation: MyConversation, ctx: MyContext) => {
   try {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: { id: ctx.from?.id.toString() },
     });
 
@@ -16,6 +16,15 @@ const addCategory = async (conversation: MyConversation, ctx: MyContext) => {
 
     await ctx.reply("Please enter the name of the category:");
     const { message } = await conversation.waitFor(["message:text"]);
+
+    const categoryExist = await prisma.category.findFirst({
+where: { name: message.text }
+    })
+
+    if (categoryExist) {
+      await ctx.reply("Category already exists.");
+      return;
+    }
 
     const category = await prisma.category.create({
       data: {
@@ -35,7 +44,7 @@ const addCategory = async (conversation: MyConversation, ctx: MyContext) => {
 
 const viewCategories = async (conversation: MyConversation, ctx: MyContext) => {
   try {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: { id: ctx.from?.id.toString() },
     });
 
@@ -67,7 +76,7 @@ const viewCategories = async (conversation: MyConversation, ctx: MyContext) => {
 
 const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
   try {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: { id: ctx.from?.id.toString() },
     });
 
@@ -107,7 +116,7 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
     const callbackData = result.update.callback_query.data;
     const categoryId = callbackData.split("_")[2];
 
-   const categoryExist =  await prisma.category.findFirst({
+   const categoryExist =  await prisma.category.findUnique({
         where: { id: categoryId },
     })
 
@@ -143,7 +152,7 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
 
 const deleteCategory = async (conversation: MyConversation, ctx: MyContext) => {
   try {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: { id: ctx.from?.id.toString() },
     });
 
@@ -185,7 +194,7 @@ await ctx.reply("No category selected.");
 const callbackData = result.update.callback_query.data;
 const categoryId = callbackData.split("_")[2];
 
-const categoryExist =  await prisma.category.findFirst({
+const categoryExist =  await prisma.category.findUnique({
     where: { id: categoryId },
 })
 
@@ -194,13 +203,16 @@ if (!categoryExist) {
     return;
 }
 
+await prisma.expense.deleteMany({
+where: { categoryId: categoryId }
+})
 
 
 await prisma.category.delete({
     where: { id: categoryId }
 });
 
-await ctx.reply("Category deleted successfully.");
+await ctx.reply(`${categoryExist.name} deleted successfully.`);
 
   } catch (e) {
     console.error("Error viewing categories:", e);

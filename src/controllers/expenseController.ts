@@ -13,7 +13,7 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
   console.log('addExpenses function called');
  
  
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: { id: ctx.from?.id.toString() }, 
   });
 
@@ -24,7 +24,7 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
     return;
   }
 
-  await ctx.reply("Please enter the amount of the expense:");
+  await ctx.reply("Please enter the amount you spent:");
   const { message } = await conversation.waitFor(["message:text"]);
   console.log(`User entered: ${message.text}`);
   const amount = parseFloat(message.text);
@@ -71,7 +71,7 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
 
 async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: { id:  ctx.from?.id.toString() }, 
   });
 
@@ -96,7 +96,7 @@ async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
 
 async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: { id:  ctx.from?.id.toString() }, 
   });
 
@@ -131,7 +131,7 @@ async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
 
 }
 async function editExpenses(conversation: MyConversation, ctx: MyContext) {
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: { id: ctx.from?.id.toString() },
   });
   if (!user) {
