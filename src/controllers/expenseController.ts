@@ -100,6 +100,7 @@ async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
     where: { id:  ctx.from?.id.toString() }, 
   });
 
+
   if (!user) {
     await ctx.reply("User not found.");
     return;
@@ -131,9 +132,13 @@ async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
 
 }
 async function editExpenses(conversation: MyConversation, ctx: MyContext) {
+
+
   const user = await prisma.user.findUnique({
     where: { id: ctx.from?.id.toString() },
   });
+
+  
   if (!user) {
     await ctx.reply("User not found.");
     return;
@@ -160,6 +165,17 @@ async function editExpenses(conversation: MyConversation, ctx: MyContext) {
   if (!result) {
     await ctx.reply("No expense selected. Operation cancelled.");
     return;
+  }
+
+  
+  const callbackQueryId = result.update.callback_query.id;
+
+
+  try {
+    await ctx.api.answerCallbackQuery(callbackQueryId);
+  } catch (error) {
+    console.error("Error answering callback query:", error);
+   
   }
 
   const callbackData = result.update.callback_query.data

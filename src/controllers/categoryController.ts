@@ -1,5 +1,6 @@
 import { prisma } from "../client";
 import { MyConversation, MyContext } from "../context/context";
+import { categoryKeyboard } from "../ui/customKeyboard";
 import { User } from "./expenseController";
 import { InlineKeyboard } from "grammy";
 
@@ -33,7 +34,9 @@ where: { name: message.text }
       },
     });
 
-    await ctx.reply(`Category '${category.name}' created successfully.`);
+    await ctx.reply(`Category '${category.name}' created successfully.`, {
+      reply_markup: categoryKeyboard,
+    });
   } catch (e) {
     console.error("Error during category creation:", e);
     await ctx.reply(
@@ -80,6 +83,8 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
       where: { id: ctx.from?.id.toString() },
     });
 
+
+
     if (!user) {
       await ctx.reply("User not found.");
       return;
@@ -108,10 +113,23 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
     });
 
     const result = await conversation.waitFor(("callback_query:data"));
+
+    const callbackQueryId = result.update.callback_query.id;
+
+
+    try {
+      await ctx.api.answerCallbackQuery(callbackQueryId);
+    } catch (error) {
+      console.error("Error answering callback query:", error);
+     
+    }
+    
     if (!result) {
     await ctx.reply("No category selected.");
       return;
     }
+
+
 
     const callbackData = result.update.callback_query.data;
     const categoryId = callbackData.split("_")[2];
@@ -190,6 +208,15 @@ if (!result) {
 await ctx.reply("No category selected.");
   return;
 }
+const callbackQueryId = result.update.callback_query.id;
+
+
+try {
+  await ctx.api.answerCallbackQuery(callbackQueryId);
+} catch (error) {
+  console.error("Error answering callback query:", error);
+ 
+}
 
 const callbackData = result.update.callback_query.data;
 const categoryId = callbackData.split("_")[2];
@@ -211,6 +238,7 @@ where: { categoryId: categoryId }
 await prisma.category.delete({
     where: { id: categoryId }
 });
+
 
 await ctx.reply(`${categoryExist.name} deleted successfully.`);
 
