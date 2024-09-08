@@ -12,11 +12,10 @@ export interface User {
 async function addExpenses(conversation: MyConversation, ctx: MyContext) {
   console.log('addExpenses function called');
  
- 
+ try{
   const user = await prisma.user.findUnique({
     where: { id: ctx.from?.id.toString() }, 
   });
-
 
 
   if (!user) {
@@ -24,34 +23,53 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
     return;
   }
 
+  const categories = await prisma.category.findMany({
+where: { userId: user.id }
+  })
+
+  const categoriesKeyboard = categories.map((category) => [
+    { text: category.name, callback_data: `category_${category.id}` },
+  ]);
+
   await ctx.reply("Please enter the amount you spent:");
   const { message } = await conversation.waitFor(["message:text"]);
   console.log(`User entered: ${message.text}`);
   const amount = parseFloat(message.text);
+
+  await ctx.reply("Where does this fall under?", {
+    reply_markup: {
+      inline_keyboard: categoriesKeyboard
+    }
+  });
+const result = await conversation.waitFor("callback_query:data");
+
+const callbackQueryId = result.update.callback_query.id;
+
+
+try{
+  await ctx.api.answerCallbackQuery(callbackQueryId);
+}catch(e){
+console.error('Error answering callback query:', e);
+}
+
+const callbackData = result.update.callback_query.data;
+const categoryId = callbackData.split("_")[1];
+
+
 
   if (isNaN(amount)) {
     await ctx.reply("Invalid amount. Please try again.");
     return;
   }
 
-  let category = await prisma.category.findFirst({
-    where: { name: "Uncategorized" },
-  });
+  
 
-  if (!category) {
-    category = await prisma.category.create({
-      data: {
-        name: "Uncategorized",
-        userId: user.id,
-      },
-    });
-  }
   if (!isNaN(amount) && Number.isInteger(amount)) {
     try {
       await prisma.expense.create({
         data: {
           amount: amount,
-          categoryId: category.id,
+          categoryId: categoryId,
           description: "Expense description",
           userId: user.id,
         },
@@ -67,10 +85,13 @@ async function addExpenses(conversation: MyConversation, ctx: MyContext) {
   } else {
     await ctx.reply("Invalid input. Please enter a valid integer value.");
   }
+}catch(e){
+  console.error('Error recording expense:', e);
+}
 }
 
 async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
-
+try{
   const user = await prisma.user.findUnique({
     where: { id:  ctx.from?.id.toString() }, 
   });
@@ -80,9 +101,48 @@ async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
     return;
   }
 
+  
+  const categories = await prisma.category.findMany({
+    where: { userId: user.id }
+      })
+    
+      const categoriesKeyboard = categories.map((category) => [
+        { text: category.name, callback_data: `category_${category.id}` },
+      ]);
+
+  await ctx.reply("View expenses in which category?", {
+    reply_markup: {
+      inline_keyboard: categoriesKeyboard
+
+    }
+  });
+
+  console.log('viewExpenses function called');
+
+  const result = await conversation.waitFor("callback_query:data");
+  if (!result) {
+    await ctx.reply("No category selected. Operation cancelled.");
+    return;
+  }
+
+  const callbackQueryId = result.update.callback_query.id;
+
+  try {
+    await ctx.api.answerCallbackQuery(callbackQueryId);
+    
+  } catch (error) {
+    console.error("Error answering callback query:", error);
+  }
+
+  
+  const callbackData = result.update.callback_query.data;
+  const categoryId = callbackData.split("_")[1];
+
+
   const expenses = await prisma.expense.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, categoryId: categoryId},
     select: { amount: true },
+
   });
 
   if (expenses.length === 0) {
@@ -92,10 +152,13 @@ async function viewExpenses(conversation: MyConversation, ctx: MyContext) {
     const expenseStrings = expenses.map((expense) => `${expense.amount}`);
     await ctx.reply(`Your expenses: ${expenseStrings.join(', ')}\nTotal: ${total}`);
   }
+}catch(e){
+  console.error('Error recording expense:', e);
+}
 }
 
 async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
-
+try{
   const user = await prisma.user.findUnique({
     where: { id:  ctx.from?.id.toString() }, 
   });
@@ -130,10 +193,13 @@ async function deleteExpenses(conversation: MyConversation, ctx: MyContext) {
 
 
 
+}catch(e){
+  console.error('Error recording expense:', e);
+}
 }
 async function editExpenses(conversation: MyConversation, ctx: MyContext) {
 
-
+try{
   const user = await prisma.user.findUnique({
     where: { id: ctx.from?.id.toString() },
   });
@@ -219,6 +285,9 @@ async function editExpenses(conversation: MyConversation, ctx: MyContext) {
     console.error("Error updating expense:", error);
     await ctx.reply("An error occurred while updating the expense. Please try again later.");
   }
+}catch(e){
+  console.error('Error recording expense:', e);
+}
 }
 
 
