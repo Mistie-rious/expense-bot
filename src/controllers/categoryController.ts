@@ -99,6 +99,8 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
       return;
     }
 
+    let messageId: number | undefined;
+
     const categoryKeyboard = categories.map((category) => [
       {
         text: category.name,
@@ -106,11 +108,15 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
       },
     ]);
 
-    await ctx.reply("Select a category to edit:", {
+  const editMessage = await ctx.reply("Select a category to edit:", {
       reply_markup: {
         inline_keyboard: categoryKeyboard,
       },
     });
+
+    messageId = editMessage.message_id;
+
+
 
     const result = await conversation.waitFor(("callback_query:data"));
 
@@ -143,7 +149,7 @@ const editCategory = async (conversation: MyConversation, ctx: MyContext) => {
         return;
     }
 
-    await ctx.reply("Please enter the new name of the category");
+    await ctx.api.editMessageText(ctx.chat!.id, messageId,"Please enter the new name of the category");
 
     const {message} = await conversation.waitFor("message:text");
 
@@ -188,6 +194,9 @@ const deleteCategory = async (conversation: MyConversation, ctx: MyContext) => {
       return;
     }
 
+    let messageId: number | undefined;
+    
+
     const categoryKeyboard = categories.map((category) => [
       {
         text: category.name,
@@ -195,13 +204,17 @@ const deleteCategory = async (conversation: MyConversation, ctx: MyContext) => {
       },
     ]);
 
-    await ctx.reply("Select a category to delete:", {
+   const message =  await ctx.reply("Select a category to delete:", {
       reply_markup: {
         inline_keyboard: categoryKeyboard,
       },
     }
 
+  
+
 );
+
+messageId = message.message_id;
 
 const result = await conversation.waitFor(("callback_query:data"));
 if (!result) {
@@ -240,7 +253,7 @@ await prisma.category.delete({
 });
 
 
-await ctx.reply(`${categoryExist.name} deleted successfully.`);
+await ctx.api.editMessageText(ctx.chat!.id, messageId, `${categoryExist.name} deleted successfully.`);
 
   } catch (e) {
     console.error("Error viewing categories:", e);

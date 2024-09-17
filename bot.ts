@@ -11,7 +11,7 @@ import { InlineKeyboard } from 'grammy';
 import { Keyboard } from 'grammy';
 import { categoryKeyboard ,expensesKeyboard, startKeyboard } from './src/ui/customKeyboard';
 dotenv.config()
-import { userKeyboards, setCurrentKeyboard, getPreviousKeyboard } from './src/ui/customKeyboard';
+import { userKeyboards, setCurrentKeyboard, getPreviousKeyboard , viewKeyboard} from './src/ui/customKeyboard';
 
 const confirm = new InlineKeyboard().text('Yes', 'yes').text('No', 'no');
 
@@ -149,8 +149,8 @@ console.error('Error deleting user:', e);
 
  
   bot.callbackQuery(/^delete_expense_/, async (ctx) => {
-    const callbackData = ctx.callbackQuery.data;
-    const expenseId = callbackData.split("_")[2];
+    const deleteExpenseCallback = ctx.callbackQuery.data;
+    const expenseId = deleteExpenseCallback.split("_")[2];
   
     try {
       
@@ -221,7 +221,9 @@ bot.hears("Add Expenses", async (ctx) => {
 });
 
 bot.hears("View Expenses", async (ctx) => {
+  const telegramId = ctx.from?.id.toString();
   await ctx.conversation.enter("viewExpenses");
+  setCurrentKeyboard(telegramId!, viewKeyboard);
 });
 
 bot.hears("Delete Expenses", async (ctx) => {
