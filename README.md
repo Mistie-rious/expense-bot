@@ -1,1 +1,1 @@
-An expense tracker telegram bot. I'm making this with grammy(bot framework). Work in Progress.
+An expense tracker telegram bot. I made this with grammyjs(bot framework), PostgreSQL and Prisma. 
