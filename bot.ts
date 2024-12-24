@@ -262,3 +262,5 @@ bot.hears("Go Back", async (ctx) => {
 
 
 bot.start();
+
+export default bot;
