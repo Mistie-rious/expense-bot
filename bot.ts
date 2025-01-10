@@ -1,5 +1,6 @@
 
 import { Bot, session } from 'grammy';
+import express from 'express';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import dotenv from 'dotenv'
 import { prisma } from './src/client';
@@ -8,12 +9,16 @@ import categoryController from './src/controllers/categoryController';
 import { greeting} from './src/conversations/mainConversation';
 import { MyContext } from './src/context/context';
 import { InlineKeyboard } from 'grammy';
+
 import { Keyboard } from 'grammy';
 import { categoryKeyboard ,expensesKeyboard, startKeyboard } from './src/ui/customKeyboard';
 dotenv.config()
 import { userKeyboards, setCurrentKeyboard, getPreviousKeyboard , viewKeyboard} from './src/ui/customKeyboard';
 
 const confirm = new InlineKeyboard().text('Yes', 'yes').text('No', 'no');
+const app = express()
+
+
 
 
 
@@ -59,7 +64,7 @@ bot.command('start', async (ctx) => {
 
 
   await ctx.conversation.enter("greeting");
- 
+
 
 });
 
@@ -260,6 +265,7 @@ bot.hears("Go Back", async (ctx) => {
 })
 
 
+app.listen(3000, () => {})
 
 bot.start();
 
