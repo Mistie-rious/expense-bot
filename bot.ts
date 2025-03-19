@@ -264,7 +264,11 @@ bot.hears("Go Back", async (ctx) => {
   }
 })
 
+app.get("/", (req, res) => {
+  res.send("Backend is running!");
+});
 
+HTMLBRElement
 app.listen(3000, () => {})
 
 bot.start();
